@@ -1,0 +1,32 @@
+name: Build and test
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test core logic on the native processor
+        run: ./test.command
+      - name: Compile both architectures
+        run: ./build.command
+      - name: Check binary and bundle
+        run: |
+          lipo ControlFlip.app/Contents/MacOS/ControlFlip -verify_arch arm64 x86_64
+          codesign --verify --strict --all-architectures ControlFlip.app
+      - name: Verify that a public release rejects ad-hoc signing
+        shell: zsh {0}
+        run: |
+          if RELEASE_BUILD=1 SIGNING_IDENTITY=- ./build.command; then
+            echo 'ERROR: release accepted an ad-hoc signature' >&2
+            exit 1
+          fi

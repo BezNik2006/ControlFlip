@@ -1,0 +1,13 @@
+Finder metadata uses these MIT-licensed Python libraries:
+
+ds_store 1.3.3 — https://github.com/dmgbuild/ds_store
+mac_alias 2.2.3 — https://github.com/dmgbuild/mac_alias
+
+Their licenses are included in vendor/DS_STORE_LICENSE and vendor/MAC_ALIAS_LICENSE.
+The supplied ControlFlip icon and installer background are original assets.
+The optional design.py asset regeneration script requires Pillow.
+
+Signed releases download rcodesign 0.29.0 as a build tool (not bundled with the app):
+https://github.com/indygreg/apple-platform-rs/tree/apple-codesign/0.29.0/apple-codesign
+Upstream licenses: MIT OR Apache-2.0. The release archive checksum is pinned in
+fetch_rcodesign.py. Signing occurs locally, with no remote signing service.

@@ -1,0 +1,45 @@
+name: Prepare signed draft release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release:
+    # Manual runs must select a tag, not an arbitrary branch.
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: macos-15
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check tag against the version file
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: zsh {0}
+        run: |
+          version=$(<VERSION)
+          [[ "$RELEASE_TAG" == "v$version" ]] || exit 1
+      - name: Load the permanent author identity
+        env:
+          SIGNING_P12_BASE64: ${{ secrets.SIGNING_P12_BASE64 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
+          SIGNING_CERT_SHA1: ${{ secrets.SIGNING_CERT_SHA1 }}
+        run: python3 Packaging/prepare_ci_identity.py
+      - name: Build the signed universal installer
+        env:
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_CERT_SHA1 }}
+          SIGNING_STYLE: self-signed
+        run: ./release.command
+      - name: Create a draft for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --draft             --title "ControlFlip $RELEASE_TAG" --notes-file RELEASE_NOTES.md
+      - name: Remove temporary signing material
+        if: always()
+        run: python3 Packaging/prepare_ci_identity.py --cleanup

@@ -1,0 +1,20 @@
+# Build products
+.DS_Store
+.build/
+*.app/
+*.dmg
+dist/
+__pycache__/
+*.pyc
+# Signing material must never enter the repository.
+.signing/
+*.key
+*.p12
+*.p8
+*.pem
+*.keychain*
+.env
+.env.*
+
+# The initial ready-to-install download is deliberately tracked.
+!Downloads/*.dmg
