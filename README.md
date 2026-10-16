@@ -2,7 +2,9 @@
 
 **Russian ↔ English keyboard layout switcher and wrong-layout text correction for Mac.**
 
-[**Скачать ControlFlip 1.2.3 для macOS — DMG**](https://github.com/BezNik2006/ControlFlip/raw/refs/heads/main/Downloads/ControlFlip-1.2.3-Universal.dmg) · Apple Silicon и Intel · macOS 13+
+[**Скачать ControlFlip 1.2.3 для macOS — DMG**](https://github.com/BezNik2006/ControlFlip/releases/download/v1.2.3/ControlFlip-1.2.3-Universal.dmg) · Apple Silicon и Intel · macOS 13+
+
+[Последний релиз и все файлы для скачивания](https://github.com/BezNik2006/ControlFlip/releases/latest)
 
 ControlFlip — бесплатная программа для исправления текста, набранного в неправильной раскладке на Mac. Коротко нажмите назначенную клавишу: `ghbdtn` превратится в `привет`, а `руддщ` — в `hello`. После исправления переключается русская или английская раскладка, чтобы вы сразу продолжили печатать на нужном языке.
 
@@ -28,7 +30,7 @@ Use a single left Control tap by default, or record your own hotkey. Features in
 
 Требуется macOS 13 или новее. Один DMG содержит приложение для Apple Silicon и Intel.
 
-1. Скачайте [ControlFlip 1.2.3 — Universal DMG](https://github.com/BezNik2006/ControlFlip/raw/refs/heads/main/Downloads/ControlFlip-1.2.3-Universal.dmg). Контрольная сумма SHA-256 находится в [Downloads/SHA256SUMS.txt](Downloads/SHA256SUMS.txt).
+1. Скачайте [ControlFlip 1.2.3 — Universal DMG](https://github.com/BezNik2006/ControlFlip/releases/download/v1.2.3/ControlFlip-1.2.3-Universal.dmg). Контрольная сумма SHA-256 находится в [SHA256SUMS.txt](https://github.com/BezNik2006/ControlFlip/releases/download/v1.2.3/SHA256SUMS.txt).
 2. Откройте DMG и перетащите ControlFlip в «Программы». Завершите предыдущую версию перед заменой.
 3. Запустите приложение из «Программ». Если macOS блокирует открытие, после попытки запуска откройте **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть** и подтвердите запуск.
 4. При первом запуске ControlFlip сам запросит доступ. Если доступ отсутствует позже, нажмите верхнюю строку **«Нет доступа · нажмите, чтобы разрешить»** в меню **а/я**. В **Конфиденциальность и безопасность → Универсальный доступ** включите ControlFlip. Это разрешение пользователь выдаёт самостоятельно; установщик не может включить его автоматически. Если запись отсутствует, добавьте приложение кнопкой «+» из «Программ».
