@@ -1,7 +1,6 @@
 name: Prepare signed draft release
 on:
-  push:
-    tags: ['v*']
+  # Opt-in only: local releases do not need GitHub signing secrets.
   workflow_dispatch:
 permissions:
   contents: read
