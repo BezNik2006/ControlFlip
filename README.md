@@ -1,10 +1,28 @@
-# ControlFlip
+# ControlFlip — переключатель раскладки для macOS
+
+**Russian ↔ English keyboard layout switcher and wrong-layout text correction for Mac.**
 
 [**Скачать ControlFlip 1.2.3 для macOS — DMG**](https://github.com/BezNik2006/ControlFlip/raw/refs/heads/main/Downloads/ControlFlip-1.2.3-Universal.dmg) · Apple Silicon и Intel · macOS 13+
 
-Исправление раскладки русский ↔ английский по выбранным клавишам. `ghbdtn` → `привет`, `руддщ` → `hello`.
+ControlFlip — бесплатная программа для исправления текста, набранного в неправильной раскладке на Mac. Коротко нажмите назначенную клавишу: `ghbdtn` превратится в `привет`, а `руддщ` — в `hello`. После исправления переключается русская или английская раскладка, чтобы вы сразу продолжили печатать на нужном языке.
 
-ControlFlip работает в верхней строке меню под значком **а/я**. Можно исправить последнее слово или выделенный фрагмент, назначить своё сочетание, исключить приложения и включить автозапуск. По умолчанию используется одиночное нажатие левого Control. После исправления переключается язык дальнейшего ввода.
+- **Последнее слово или выделенный текст.** Исправляйте слово перед курсором либо сразу весь выделенный фрагмент.
+- **Свои горячие клавиши.** По умолчанию — одиночное нажатие левого Control. Можно назначить своё сочетание с учётом левой и правой клавиши.
+- **Исключения для приложений.** Выберите программы, в которых исправление нужно отключить.
+- **Автозапуск при входе в macOS.** Включается и отключается в настройках.
+- **Приложение строки меню.** Компактный значок **а/я**, обработка текста локально и установщик для Apple Silicon и Intel.
+
+## English
+
+ControlFlip is a native macOS keyboard layout switcher and text correction utility for Russian and English. If you typed a word with the wrong keyboard layout, press a customizable keyboard shortcut to convert the last word or selected text. The input language then switches to match the corrected text.
+
+Use a single left Control tap by default, or record your own hotkey. Features include application exclusions, launch at login, a menu bar icon, and a Universal DMG for Apple Silicon and Intel Macs running macOS 13 or later. Text is processed locally and is not sent over the network.
+
+## Альтернатива Punto Switcher для Mac
+
+Если вы ищете аналог Punto Switcher (PuntoSwitcher) для macOS, ControlFlip подойдёт для исправления раскладки по горячей клавише: русского и английского текста, последнего слова или выделенного фрагмента. Исправление запускаете вы сами; автоматического определения языка и замен во время набора нет.
+
+**Looking for a Punto Switcher alternative for Mac?** ControlFlip focuses on manual hotkey-based keyboard layout conversion, then switches the input language for further typing.
 
 ## Установка
 
