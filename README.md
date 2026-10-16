@@ -18,11 +18,11 @@ ControlFlip is a native macOS keyboard layout switcher and text correction utili
 
 Use a single left Control tap by default, or record your own hotkey. Features include application exclusions, launch at login, a menu bar icon, and a Universal DMG for Apple Silicon and Intel Macs running macOS 13 or later. Text is processed locally and is not sent over the network.
 
-## Альтернатива Punto Switcher для Mac
+## Альтернатива Punto Switcher и Caramba Switcher для Mac
 
-Если вы ищете аналог Punto Switcher (PuntoSwitcher) для macOS, ControlFlip подойдёт для исправления раскладки по горячей клавише: русского и английского текста, последнего слова или выделенного фрагмента. Исправление запускаете вы сами; автоматического определения языка и замен во время набора нет.
+Если вы ищете аналог Punto Switcher (PuntoSwitcher) или Caramba Switcher («Карамба Свитчер») для macOS, ControlFlip подойдёт для исправления раскладки по горячей клавише: русского и английского текста, последнего слова или выделенного фрагмента. Исправление запускаете вы сами; автоматического определения языка и замен во время набора нет.
 
-**Looking for a Punto Switcher alternative for Mac?** ControlFlip focuses on manual hotkey-based keyboard layout conversion, then switches the input language for further typing.
+**Looking for a Punto Switcher or Caramba Switcher alternative for Mac?** ControlFlip focuses on manual hotkey-based keyboard layout conversion, then switches the input language for further typing.
 
 ## Установка
 
