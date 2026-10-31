@@ -134,4 +134,39 @@ expect(stableID != ExcludedApplication.identity(bundleIdentifier: "com.other.app
 expect(ExcludedApplication.identity(bundleIdentifier: nil, path: "/Applications/Example.app").hasPrefix("path:"), "Apps without bundle ID use path")
 let excluded = ExcludedApplication(identifier: stableID, name: "Example", path: "/Applications/Example.app")
 expect(try! JSONDecoder().decode([ExcludedApplication].self, from: JSONEncoder().encode([excluded])) == [excluded], "Exclusions survive saving and reload")
+let terminalEnglish = TypedWordReplacement(bufferedWord: "ghbdtn", hasSelection: false, converter: converter)
+expect(terminalEnglish?.conversion.text == "привет", "Terminal converts typed English suffix")
+expect(terminalEnglish?.deleteCount == 6, "Terminal deletes original suffix before paste")
+let terminalRussian = TypedWordReplacement(bufferedWord: "руддщ  ", hasSelection: false, converter: converter)
+expect(terminalRussian?.conversion.text == "hello  ", "Terminal preserves trailing spaces")
+expect(terminalRussian?.deleteCount == 7, "Terminal counts Cyrillic characters, not UTF8 bytes")
+expect(TypedWordReplacement(bufferedWord: "ghbdtn", hasSelection: true, converter: converter) == nil,
+       "Terminal screen selection must not replace shell input")
+expect(TypedWordReplacement(bufferedWord: nil, hasSelection: false, converter: converter) == nil,
+       "Terminal never infers an untracked word from scrollback")
+expect(TypedWordReplacement(bufferedWord: "", hasSelection: false, converter: converter) == nil,
+       "Terminal ignores empty context")
+expect(TypedWordReplacement(bufferedWord: "123", hasSelection: false, converter: converter) == nil,
+       "Terminal does not delete text without a conversion")
+expect(TypedWordReplacement(bufferedWord: "ghbdtn\n", hasSelection: false, converter: converter) == nil,
+       "Terminal never injects a newline")
+expect(TypedWordReplacement(bufferedWord: "ghbdtn😀", hasSelection: false, converter: converter) == nil,
+       "Terminal avoids ambiguous emoji deletion")
+expect(TypedWordReplacement(bufferedWord: "a\u{301}", hasSelection: false, converter: converter) == nil,
+       "Terminal avoids ambiguous combining-character deletion")
+expect(TypedWordReplacement(bufferedWord: "`Ghbdtn", hasSelection: false, converter: converter)?.conversion.text == "ёПривет",
+       "Terminal supports case and Yo")
+let selectionRange = NSRange(location: 3, length: 6)
+expect(TextSelection.matches(text: "ghbdtn", range: selectionRange, expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Selection confirmed by exact text and range")
+expect(!TextSelection.matches(text: "", range: NSRange(location: 9, length: 0), expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Ignored selection must not append converted text")
+expect(!TextSelection.matches(text: "ghbdtn", range: NSRange(location: 0, length: 6), expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Conflicting range rejects a stale selection")
+expect(!TextSelection.matches(text: nil, range: nil, expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Unobservable selection is not assumed successful")
+expect(TextSelection.matches(text: nil, range: selectionRange, expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Exact range can confirm selection without selected-text access")
+expect(TextSelection.matches(text: "ghbdtn", range: nil, expectedText: "ghbdtn", expectedRange: selectionRange),
+       "Exact selected text can confirm selection without range access")
 print("Passed \(checks) checks")

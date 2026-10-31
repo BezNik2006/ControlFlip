@@ -9,6 +9,14 @@ private func attribute(_ element: AXUIElement, _ name: CFString) -> CFTypeRef? {
     return AXUIElementCopyAttributeValue(element, name, &result) == .success ? result : nil
 }
 
+private func selectionRange(_ element: AXUIElement) -> CFRange? {
+    guard let value = attribute(element, kAXSelectedTextRangeAttribute as CFString),
+          CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+    var range = CFRange()
+    guard AXValueGetValue(value as! AXValue, .cfRange, &range), range.location >= 0, range.length >= 0 else { return nil }
+    return range
+}
+
 private struct InputLayouts {
     let english: TISInputSource?
     let russian: TISInputSource?
@@ -130,6 +138,7 @@ private final class ConverterEngine {
         let token = generation
         lock.unlock()
         let pid = app.processIdentifier
+        let isTerminal = app.bundleIdentifier == "com.apple.Terminal"
         // Capture input sources on the main thread; never select a source from the event callback.
         let layouts = InputLayouts()
         guard layouts.english != nil && layouts.russian != nil else {
@@ -150,12 +159,23 @@ private final class ConverterEngine {
                 let subrole = attribute(element, kAXSubroleAttribute as CFString) as? String
                 guard subrole != "AXSecureTextField" else { self.status("В поле пароля исправление недоступно"); return }
             }
-            var selectedRange: CFRange?
-            if let element = focused, let value = attribute(element, kAXSelectedTextRangeAttribute as CFString), CFGetTypeID(value) == AXValueGetTypeID() {
-                var range = CFRange()
-                if AXValueGetValue(value as! AXValue, .cfRange, &range), range.location >= 0, range.length >= 0 { selectedRange = range }
-            }
+            let selectedRange = focused.flatMap { selectionRange($0) }
             let selected = focused.flatMap { attribute($0, kAXSelectedTextAttribute as CFString) as? String }
+            if isTerminal {
+                // AX text may include prompts and old output. Never select or infer a
+                // word from that transcript, and never paste over a screen selection.
+                let hasSelection = !(selected ?? "").isEmpty || (selectedRange?.length ?? 0) > 0
+                guard let replacement = TypedWordReplacement(bufferedWord: bufferedWord,
+                    hasSelection: hasSelection, converter: layouts.converter) else {
+                    self.status(hasSelection
+                        ? "В Терминале выделение экрана не заменяется; исправляйте только что набранное слово"
+                        : "В Терминале наберите слово перед исправлением; поддерживаются русские и английские символы")
+                    return
+                }
+                self.paste(replacement.conversion, layouts: layouts, token: token, pid: pid,
+                           deletingBeforePaste: replacement.deleteCount)
+                return
+            }
             if let text = selected, !text.isEmpty {
                 self.replaceSelection(text, layouts: layouts, token: token, pid: pid)
                 return
@@ -166,11 +186,25 @@ private final class ConverterEngine {
                let wordRange = WordContext.lastWordRange(in: value, caretUTF16: range.location) {
                 let word = (value as NSString).substring(with: wordRange)
                 guard let converted = layouts.converter.convert(word), self.valid(token, pid) else { return }
+                if word == bufferedWord, let replacement = TypedWordReplacement(bufferedWord: word,
+                    hasSelection: false, converter: layouts.converter) {
+                    // The real caret and tracked suffix agree: no selection shortcut is needed.
+                    self.paste(replacement.conversion, layouts: layouts, token: token, pid: pid,
+                               deletingBeforePaste: replacement.deleteCount)
+                    return
+                }
                 var target = CFRange(location: wordRange.location, length: wordRange.length)
                 guard let axRange = AXValueCreate(.cfRange, &target) else { return }
                 if AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axRange) == .success {
-                    if self.valid(token, pid) {
+                    self.pause()
+                    guard self.valid(token, pid) else { return }
+                    let actualRange = selectionRange(element).map { NSRange(location: $0.location, length: $0.length) }
+                    let actualText = attribute(element, kAXSelectedTextAttribute as CFString) as? String
+                    if TextSelection.matches(text: actualText, range: actualRange,
+                                             expectedText: word, expectedRange: wordRange) {
                         self.paste(converted, layouts: layouts, token: token, pid: pid)
+                    } else {
+                        self.status("Программа не подтвердила выделение; выделите текст вручную и повторите")
                     }
                     return
                 }
@@ -197,16 +231,14 @@ private final class ConverterEngine {
             if let text = copied, !text.isEmpty {
                 guard let converted = layouts.converter.convert(text) else { self.status("В выделении нет текста для исправления"); return }
                 if let count = self.paste(converted, layouts: layouts, token: token, pid: pid, preserving: snapshot) { ownedCount = count }
-            } else if let word = bufferedWord, let converted = layouts.converter.convert(word) {
+            } else if let replacement = TypedWordReplacement(bufferedWord: bufferedWord,
+                hasSelection: (selectedRange?.length ?? 0) > 0, converter: layouts.converter) {
                 // The buffer is reset on cursor movement, mouse clicks, app changes and shortcuts.
-                // Select exactly the typed suffix; this keeps replacement in a single paste/undo step.
-                for _ in 0..<word.count {
-                    guard self.valid(token, pid) else { return }
-                    self.key(123, flags: .maskShift)
+                // Shift-arrows do not reliably select text in every application.
+                if let count = self.paste(replacement.conversion, layouts: layouts, token: token, pid: pid,
+                    preserving: snapshot, deletingBeforePaste: replacement.deleteCount) {
+                    ownedCount = count
                 }
-                self.pause()
-                guard self.valid(token, pid) else { return }
-                if let count = self.paste(converted, layouts: layouts, token: token, pid: pid, preserving: snapshot) { ownedCount = count }
             } else {
                 self.status("Выделите текст или наберите слово перед нажатием Control")
             }
@@ -219,7 +251,8 @@ private final class ConverterEngine {
     }
 
     @discardableResult private func paste(_ converted: Conversion, layouts: InputLayouts, token: Int, pid: pid_t,
-                                         preserving snapshot: ClipboardSnapshot? = nil) -> Int? {
+                                         preserving snapshot: ClipboardSnapshot? = nil,
+                                         deletingBeforePaste count: Int = 0) -> Int? {
         let board = NSPasteboard.general
         guard valid(token, pid) else { return nil }
         let saved = snapshot ?? ClipboardSnapshot(board)
@@ -230,6 +263,16 @@ private final class ConverterEngine {
             return nil
         }
         let ownedCount = board.changeCount
+        defer { if snapshot == nil { saved.restore(board, ifUnchanged: ownedCount) } }
+        // Prepare the clipboard before touching input. Delete only the known typed
+        // suffix, without a selection; never send a line-erasing shortcut or Return.
+        for _ in 0..<count {
+            guard valid(token, pid) else { return ownedCount }
+            key(51) // Delete / Backspace, without modifiers
+            pause(0.005)
+        }
+        if count > 0 { pause() }
+        guard valid(token, pid) else { return ownedCount }
         key(9, flags: .maskCommand) // Paste
         DispatchQueue.main.async {
             guard self.valid(token, pid) else { return }
@@ -239,7 +282,6 @@ private final class ConverterEngine {
         pause(0.25)
         // With an existing clipboard transaction its caller owns restoration.
         // Return our write count, never somebody else's later clipboard count.
-        if snapshot == nil { saved.restore(board, ifUnchanged: ownedCount) }
         return ownedCount
     }
 }
@@ -475,6 +517,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "ControlFlip"
         alert.informativeText = "Назначено: \(monitor.shortcut.displayName).\n\nКак исправить текст:\n1. Оставьте курсор после слова, набранного не в той раскладке, или выделите нужный фрагмент.\n2. Коротко нажмите и отпустите назначенную клавишу или сочетание. По умолчанию — левый Control.\n3. ControlFlip исправит текст и переключит раскладку для дальнейшего набора.\n\nНапример: ghbdtn → привет — дальше вы печатаете по-русски. Руддщ → Hello — дальше по-английски. Если ничего не выделено, исправляется последнее слово перед курсором; пробелы после него сохраняются. Автоматических замен при наборе нет.\n\nСвои клавиши: а/я → Настройки → Записать сочетание. В настройках также доступны исключения программ и автозапуск.\n\nДля работы добавьте русскую и английскую раскладки в macOS и разрешите Универсальный доступ. Если доступа нет, нажмите верхнюю строку «Нет доступа» в меню а/я.\n\nВ некоторых редакторах нужно выделить текст вручную. В полях паролей исправление не работает. Буфер обмена временно используется при замене и затем восстанавливается. Набранный текст не сохраняется на диск и не отправляется в сеть."
+        alert.informativeText += "\n\nВ стандартном Терминале macOS исправляйте только что набранное слово до перемещения курсора или Enter. Выделение экрана не заменяется. Emoji и составные Unicode-символы в этом режиме не поддерживаются."
         alert.addButton(withTitle: "Понятно")
         alert.runModal()
     }

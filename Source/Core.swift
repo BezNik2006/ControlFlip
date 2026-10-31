@@ -171,3 +171,30 @@ struct WordContext {
         return (text as NSString).substring(with: range)
     }
 }
+
+// Only delete a freshly tracked suffix when there is no selection. Restrict this
+// fallback to ordinary keyboard characters with an unambiguous Delete count.
+// Complex Unicode can have different erase rules across editors and shells.
+struct TypedWordReplacement {
+    let conversion: Conversion
+    let deleteCount: Int
+
+    init?(bufferedWord: String?, hasSelection: Bool, converter: LayoutConverter) {
+        guard !hasSelection, let word = bufferedWord, !word.isEmpty,
+              word.unicodeScalars.allSatisfy({ scalar in
+                  (0x20...0x7E).contains(scalar.value) || (0x410...0x44F).contains(scalar.value)
+                      || scalar.value == 0x401 || scalar.value == 0x451
+              }), let converted = converter.convert(word) else { return nil }
+        conversion = converted
+        deleteCount = word.count
+    }
+}
+
+enum TextSelection {
+    static func matches(text: String?, range: NSRange?, expectedText: String, expectedRange: NSRange) -> Bool {
+        guard text != nil || range != nil else { return false }
+        if let text = text, text != expectedText { return false }
+        if let range = range, range != expectedRange { return false }
+        return true
+    }
+}
